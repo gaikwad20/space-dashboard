@@ -217,6 +217,7 @@ export default function App() {
     const [r1, setR1] = useState(null); const [r2, setR2] = useState(null);
     const [loading, setLoading] = useState(false); const [error, setError] = useState(null);
     const [history, setHistory] = useState([]); const [view, setView] = useState(null);
+    const [user, setUser] = useState(null); const [emailInput, setEmailInput] = useState("");
 
     useEffect(() => {
         const s = document.createElement("style"); s.id = "space-css2";
@@ -224,8 +225,19 @@ export default function App() {
         if (!document.getElementById("space-css2")) document.head.appendChild(s);
     }, []);
 
-    useEffect(() => { try { const r = localStorage.getItem("sap_space"); if (r) setHistory(JSON.parse(r)); } catch (e) { console.error(e); } }, []);
-    const saveH = e => { try { localStorage.setItem("sap_space", JSON.stringify(e)); } catch (e) { console.error(e); } };
+    useEffect(() => { 
+        try { 
+            const key = user ? `sap_space_${user}` : "sap_space_anon";
+            const r = localStorage.getItem(key); 
+            if (r) setHistory(JSON.parse(r)); else setHistory([]);
+        } catch (e) { console.error(e); } 
+    }, [user]);
+    const saveH = (e, tUser=user) => { 
+        try { 
+            const key = tUser ? `sap_space_${tUser}` : "sap_space_anon";
+            localStorage.setItem(key, JSON.stringify(e)); 
+        } catch (e) { console.error(e); } 
+    };
     const addH = (name, a) => { const e = { id: Date.now(), name, date: new Date().toLocaleString(), ...a }; setHistory(p => { const u = [e, ...p].slice(0, 20); saveH(u); return u; }); };
 
     const go = async () => {
@@ -241,7 +253,7 @@ export default function App() {
     const d1 = view || r1; const n1 = view ? view.name : f1?.name;
     const today = new Date(); const stardate = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, "0")}.${String(today.getDate()).padStart(2, "0")}`;
 
-    return <div style={{ minHeight: "100vh", background: "#020510", fontFamily: "'Inter',system-ui,sans-serif", color: "#f1f5f9", position: "relative", overflowX: "hidden" }}>
+    return <div style={{ minHeight: "100vh", background: "#020510", fontFamily: "'Inter',system-ui,sans-serif", color: "#f1f5f9", position: "relative", overflowX: "hidden", display: "flex" }}>
         {/* Stars */}
         <div style={{ position: "fixed", inset: 0, pointerEvents: "none", overflow: "hidden" }}>
             {STARS.map((s, i) => <div key={i} style={{ position: "absolute", left: `${s.x}%`, top: `${s.y}%`, width: s.r, height: s.r, borderRadius: "50%", background: "#fff", opacity: s.bright ? 0.9 : 0.4, animation: i % 6 === 0 ? `twinkle ${(i % 3) + 2}s ${s.delay}s ease-in-out infinite` : undefined }} />)}
@@ -253,7 +265,31 @@ export default function App() {
             ))}
         </div>
 
-        <div style={{ maxWidth: 1150, margin: "0 auto", padding: "22px 18px", position: "relative" }}>
+        {/* --- LEFT SIDEBAR: HISTORY --- */}
+        <div style={{ width: 280, borderRight: "1px solid rgba(192,132,252,0.15)", background: "rgba(2,5,16,0.5)", backdropFilter: "blur(10px)", padding: "22px 16px", display: "flex", flexDirection: "column", height: "100vh", overflowY: "auto", zIndex: 10 }}>
+            <div style={{ fontSize: 13, color: "#e2e8f0", fontWeight: 900, letterSpacing: 1.5, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ color: "#c084fc" }}>📜</span> MISSION ARCHIVES
+            </div>
+            {history.length > 0 ? <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                {history.map(h => <div key={h.id} onClick={() => { setView(h); setR1(null); setR2(null); }}
+                    style={{
+                        borderRadius: 12, padding: "14px 16px", cursor: "pointer", transition: "all .2s",
+                        background: view?.id === h.id ? "rgba(192,132,252,0.15)" : "rgba(255,255,255,0.03)",
+                        border: `1px solid ${view?.id === h.id ? "rgba(192,132,252,0.4)" : "rgba(255,255,255,0.05)"}`
+                    }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: view?.id === h.id ? "#c084fc" : "#e2e8f0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginBottom: 6 }} title={h.name}>{h.name}</div>
+                    <div style={{ fontSize: 9, color: "#64748b", marginBottom: 10 }}>{h.date}</div>
+                    <div style={{ display: "flex", gap: 6 }}>
+                        <span style={{ fontSize: 9, padding: "3px 8px", borderRadius: 4, background: "rgba(192,132,252,0.1)", color: "#c084fc", fontWeight: 700 }}>{h.rows?.toLocaleString()} rows</span>
+                        <span style={{ fontSize: 9, padding: "3px 8px", borderRadius: 4, background: "rgba(56,189,248,0.1)", color: "#38bdf8", fontWeight: 700 }}>{h.cols} cols</span>
+                    </div>
+                </div>)}
+            </div> : <div style={{ fontSize: 11, color: "#475569", textAlign: "center", marginTop: 40, padding: 20, border: "1px dashed rgba(255,255,255,0.1)", borderRadius: 10 }}>No scans recorded.<br/>Login to load history.</div>}
+        </div>
+
+        {/* --- MAIN CONTENT AREA --- */}
+        <div style={{ flex: 1, padding: "26px 40px", position: "relative", height: "100vh", overflowY: "auto" }}>
+            <div style={{ maxWidth: 1000, margin: "0 auto" }}>
             {/* HEADER */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28, paddingBottom: 18, borderBottom: "1px solid rgba(192,132,252,0.12)" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
@@ -269,7 +305,25 @@ export default function App() {
                         </div>
                     </div>
                 </div>
-                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+                    {/* LOGIN SECTION */}
+                    <div style={{ display: "flex", gap: 8, alignItems: "center", borderRight: "1px solid rgba(255,255,255,0.1)", paddingRight: 16 }}>
+                        {!user ? (
+                            <>
+                                <input type="email" placeholder="Enter email to login" value={emailInput} onChange={e => setEmailInput(e.target.value)} style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(192,132,252,0.3)", color: "#fff", padding: "8px 12px", borderRadius: 6, fontSize: 11, outline: "none", width: 160 }} />
+                                <button onClick={() => { if (emailInput) setUser(emailInput.trim().toLowerCase()); }} style={{ background: "#c084fc", color: "#fff", border: "none", padding: "8px 16px", borderRadius: 6, fontSize: 11, fontWeight: 800, cursor: "pointer", transition:"all.2s", boxShadow: "0 0 10px rgba(124,58,237,0.4)" }}>LOGIN</button>
+                            </>
+                        ) : (
+                            <>
+                                <div style={{ display: "flex", alignItems: "center", gap: 8, background: "rgba(52,211,153,0.1)", border: "1px solid rgba(52,211,153,0.2)", padding: "6px 12px", borderRadius: 20 }}>
+                                    <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#34d399", boxShadow: "0 0 10px #34d399" }} />
+                                    <span style={{ fontSize: 11, color: "#e2e8f0", fontWeight: 700 }}>{user}</span>
+                                </div>
+                                <button onClick={() => { setUser(null); setEmailInput(""); setView(null); setR1(null); setR2(null); }} style={{ background: "transparent", color: "#f87171", border: "1px solid rgba(244,63,94,0.3)", padding: "7px 12px", borderRadius: 8, fontSize: 10, fontWeight: 800, cursor: "pointer", transition: "all .2s" }}>LOGOUT</button>
+                            </>
+                        )}
+                    </div>
+
                     <div style={{ display: "flex", background: "rgba(255,255,255,0.03)", borderRadius: 10, padding: 3, border: "1px solid rgba(255,255,255,0.07)" }}>
                         {[["single", "◎ SOLO"], ["compare", "⊕ DUAL"]].map(([v, l]) => (
                             <button key={v} onClick={() => { setMode(v); reset(); }} style={{ padding: "6px 14px", borderRadius: 7, fontSize: 10, fontWeight: 800, cursor: "pointer", border: "none", letterSpacing: 1, transition: "all .2s", background: mode === v ? "linear-gradient(135deg,rgba(124,58,237,0.7),rgba(99,102,241,0.7))" : "transparent", color: mode === v ? "#e2e8f0" : "#334155", boxShadow: mode === v ? "0 2px 14px rgba(124,58,237,0.5)" : "none" }}>{l}</button>
@@ -318,31 +372,8 @@ export default function App() {
                 {r2 && !view && <MissionPanel result={r2} accent="#38bdf8" name={f2?.name} />}
             </div>}
 
-            {/* MISSION ARCHIVES */}
-            {history.length > 0 && <div style={{ marginTop: 36, paddingTop: 20, borderTop: "1px solid rgba(192,132,252,0.1)" }}>
-                <div style={{ fontSize: 9, color: "#1e3a5f", fontWeight: 800, letterSpacing: 3, marginBottom: 14 }}>📜 MISSION ARCHIVES — {history.length} LOGGED</div>
-                <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8 }}>
-                    {history.map(h => <div key={h.id} onClick={() => { setView(h); setR1(null); setR2(null); }}
-                        style={{
-                            minWidth: 175, borderRadius: 16, padding: "13px 15px", cursor: "pointer", flexShrink: 0, transition: "all .25s",
-                            background: view?.id === h.id ? "rgba(192,132,252,0.1)" : "rgba(255,255,255,0.025)",
-                            border: `1px solid ${view?.id === h.id ? "rgba(192,132,252,0.4)" : "rgba(255,255,255,0.06)"}`,
-                            boxShadow: view?.id === h.id ? "0 0 20px rgba(192,132,252,0.2)" : "none"
-                        }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 5 }}>
-                            <div style={{ width: 6, height: 6, borderRadius: "50%", background: view?.id === h.id ? "#c084fc" : "#334155", boxShadow: view?.id === h.id ? "0 0 8px #c084fc" : "" }} />
-                            <span style={{ fontSize: 9, color: view?.id === h.id ? "#c084fc" : "#334155", fontWeight: 800, letterSpacing: 1 }}>{view?.id === h.id ? "ACTIVE" : "ARCHIVED"}</span>
-                        </div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={h.name}>{h.name}</div>
-                        <div style={{ fontSize: 9, color: "#1e293b", marginTop: 3, letterSpacing: 0.3 }}>{h.date}</div>
-                        <div style={{ display: "flex", gap: 5, marginTop: 8 }}>
-                            <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 6, background: "rgba(192,132,252,0.1)", border: "1px solid rgba(192,132,252,0.2)", color: "#c084fc", fontWeight: 700 }}>{h.rows?.toLocaleString()} rows</span>
-                            <span style={{ fontSize: 9, padding: "2px 7px", borderRadius: 6, background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.2)", color: "#38bdf8", fontWeight: 700 }}>{h.cols} cols</span>
-                        </div>
-                        <div style={{ fontSize: 9, color: "#c084fc", marginTop: 7, fontWeight: 800, letterSpacing: 1 }}>VIEW MISSION →</div>
-                    </div>)}
-                </div>
-            </div>}
+            {/* Old Mission Archives Area Removed */}
+            </div>
         </div>
     </div>;
 }                                                                                                                                                                  
