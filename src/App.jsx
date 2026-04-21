@@ -224,8 +224,8 @@ export default function App() {
         if (!document.getElementById("space-css2")) document.head.appendChild(s);
     }, []);
 
-    useEffect(() => { (async () => { try { const r = await window.storage.get("sap_space"); if (r) setHistory(JSON.parse(r.value)); } catch (e) { } })(); }, []);
-    const saveH = async e => { try { await window.storage.set("sap_space", JSON.stringify(e)); } catch (e) { } };
+    useEffect(() => { try { const r = localStorage.getItem("sap_space"); if (r) setHistory(JSON.parse(r)); } catch (e) { console.error(e); } }, []);
+    const saveH = e => { try { localStorage.setItem("sap_space", JSON.stringify(e)); } catch (e) { console.error(e); } };
     const addH = (name, a) => { const e = { id: Date.now(), name, date: new Date().toLocaleString(), ...a }; setHistory(p => { const u = [e, ...p].slice(0, 20); saveH(u); return u; }); };
 
     const go = async () => {
